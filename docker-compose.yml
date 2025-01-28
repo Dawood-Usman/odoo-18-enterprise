@@ -1,0 +1,51 @@
+name: Odoo-Docker-Deployment
+
+services:
+  db-18:
+    image: postgres:15
+    restart: always
+    volumes:
+      - odoo-db-18:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: odoo
+      POSTGRES_DB: postgres
+    networks:
+      - odoo-network-18
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odoo"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  odoo-18:
+    image: odoo:18
+    depends_on:
+      - db-18
+    restart: always
+    ports:
+      - "8071:8069"
+    environment:
+      - HOST=db-18
+      - USER=odoo
+      - PASSWORD=odoo
+      - DATABASE=postgres
+    volumes:
+      - odoo-data-18:/var/lib/odoo
+      - ./addons:/mnt/extra-addons
+      - ./enterprise:/mnt/enterprise-addons
+      - ./etc/odoo.conf:/etc/odoo/odoo.conf
+    networks:
+      - odoo-network-18
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8071 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+networks:
+  odoo-network-18:
+
+volumes:
+  odoo-data-18:
+  odoo-db-18:
